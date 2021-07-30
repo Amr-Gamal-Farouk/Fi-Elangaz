@@ -1,68 +1,113 @@
+import 'package:fi_angaz/AppLocalization.dart';
+import 'package:fi_angaz/Language.dart';
+import 'package:fi_angaz/presentation/pages/change_language.dart';
+import 'package:fi_angaz/presentation/pages/home_page.dart';
+import 'package:fi_angaz/res/theme.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:provider/provider.dart';
 
-void main() {
-  runApp(const MyApp());
+import 'data/data_sources/lang_from_shared.dart';
+import 'data/provider/test/provider.dart';
+
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+    String lang=await getLanguage();
+  runApp( MyApp( lang: lang,));
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+Language l = Language('Arabic', 'ar');
 
+
+class MyApp extends StatefulWidget {
+  String lang;
+
+    MyApp({Key? key,  required this.lang}) : super(key: key);
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
+  State<MyApp> createState() => _MyAppState(lang:lang);
+
+  static void setLocale(BuildContext context, Locale locale) {
+    _MyAppState? state = context.findAncestorStateOfType<_MyAppState>();
+    state!.setLocale(locale);
   }
+
+  static void setTheme(BuildContext context, ThemeData theme) {
+    _MyAppState? state = context.findAncestorStateOfType<_MyAppState>();
+    state!.setTheme(theme);
+  }
+
+
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
+class _MyAppState extends State<MyApp> {
+  String lang;
 
-  final String title;
+  ThemeData myTheme = appTheme;
+  late Locale _locale ;
+
+  _MyAppState({required this.lang});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
+  void didChangeDependencies() {
+    _locale = makeAction(lang: lang);
+    super.didChangeDependencies();
+  }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
 
-  void _incrementCounter() {
+
+  void setLocale(Locale locale) {
     setState(() {
-      _counter++;
+      _locale = locale;
     });
   }
 
+  void setTheme(ThemeData theme) {
+    setState(() {
+      myTheme = theme;
+    });
+  }
+  
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+    return MultiProvider(
+
+      providers: [
+        ChangeNotifierProvider.value(value: TestProvider())
+      ],
+      child: MaterialApp(
+        title: 'Fe-Elangaz',
+        theme: myTheme,
+        locale: _locale,
+        supportedLocales: const [
+          Locale('en', 'US'),
+          Locale('ar', 'EG'),
+        ],
+        localizationsDelegates: [
+          AppLocalization.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+
+        ],
+        localeResolutionCallback: (locale, supportedLocales) {
+          for (var supportedLocale in supportedLocales) {
+            if (supportedLocale.languageCode == locale!.languageCode &&
+                supportedLocale.countryCode == locale!.countryCode) {
+              return supportedLocale;
+            }
+          }
+          return supportedLocales.first;
+        },
+        debugShowCheckedModeBanner: false,
+
+        home:  const HomePage(),
       ),
     );
   }
 }
+
+
+
+
